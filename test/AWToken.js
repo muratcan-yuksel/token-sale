@@ -16,7 +16,7 @@ beforeEach(async function () {
 
   // Deploy TokenSale contract
   const TokenSale = await ethers.getContractFactory("TokenSale");
-  tokenSale = await TokenSale.deploy(tokenAddress, 5, 2);
+  tokenSale = await TokenSale.deploy(tokenAddress, 5);
   console.log("tokenSale address:", await tokenSale.getAddress());
   tokenSaleAddress = await tokenSale.getAddress();
 

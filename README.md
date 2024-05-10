@@ -1,13 +1,5 @@
-# Sample Hardhat Project
+We have our AWToken (Awesome Token), We want to whitelist some accounts, and have a whitelist sale. During the whitelist sale, the token is 1 ETH. After the whitesale ends, standard sale starts, with the token price increasing to 2 ETH.
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a Hardhat Ignition module that deploys that contract.
+If a whitelisted user missed the whitesale, they will have to pay the standard price as non-whitelisteds.
 
-Try running some of the following tasks:
-
-```shell
-npx hardhat help
-npx hardhat test
-REPORT_GAS=true npx hardhat test
-npx hardhat node
-npx hardhat ignition deploy ./ignition/modules/Lock.js
-```
+The sale ends when the owner decides, or when there are no more tokens to be bought.
