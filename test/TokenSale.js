@@ -24,15 +24,21 @@ async function setupContracts() {
 
   // Deploy TokenSale contract
   const TokenSale = await ethers.getContractFactory("TokenSale");
-  tokenSale = await TokenSale.deploy(tokenAddress, 5);
+  tokenSale = await TokenSale.deploy(
+    tokenAddress,
+    ethers.parseUnits("5", "ether")
+  );
   console.log("tokenSale address:", await tokenSale.getAddress());
   tokenSaleAddress = await tokenSale.getAddress();
 
   // Get signers
   [owner, user1, user2, user3, user4, user5] = await ethers.getSigners();
 
-  //owner sends all of the tokens to the tokenSale contract
+  //!owner sends all of the tokens to the tokenSale contract
   await token.transfer(tokenSaleAddress, 100);
+  // *
+  // ?
+  // TODO
 }
 
 beforeEach(async function () {
@@ -54,7 +60,9 @@ it("standard sale is not active", async function () {
 });
 
 it("token price is 5 ETH", async function () {
-  expect(await tokenSale.tokenPrice()).to.equal(5);
+  expect(await tokenSale.tokenPrice()).to.equal(
+    ethers.parseUnits("5", "ether")
+  );
 });
 
 it("non whitelisted user cannot buy tokens", async function () {
@@ -71,10 +79,57 @@ it("non owner cannot whitelist users", async function () {
     .reverted;
 });
 
-it("whitelisted user can buy tokens", async function () {
+it("whitelisted users can buy tokens", async function () {
   await addToWhitelist(user2.address);
-  await tokenSale.connect(user2).buyWhitesaleTokens(1, { value: 5 });
+  await tokenSale
+    .connect(user2)
+    .buyWhitesaleTokens(1, { value: ethers.parseUnits("5", "ether") });
 
   expect(await token.balanceOf(user2.address)).to.equal(1);
   expect(await tokenSale.getTokenSold()).to.equal(1);
+  expect(await tokenSale.getBalance()).to.equal(
+    ethers.parseUnits("5", "ether")
+  );
+});
+
+it("owner ends whitesale and everyone can buy tokens", async function () {
+  await tokenSale.connect(owner).toggleWhitelistSaleActive();
+  await tokenSale.connect(owner).toggleSaleActive();
+
+  //wait for 1 block
+  await ethers.provider.send("evm_mine", []);
+
+  await tokenSale
+    .connect(user5)
+    .buyTokens(2, { value: ethers.parseUnits("10", "ether") });
+
+  expect(await token.balanceOf(user5.address)).to.equal(2);
+  expect(await tokenSale.getTokenSold()).to.equal(2);
+  expect(await tokenSale.getBalance()).to.equal(
+    ethers.parseUnits("10", "ether")
+  );
+});
+
+it("owner can withdraw ETH", async function () {
+  await tokenSale.connect(owner).toggleWhitelistSaleActive();
+  await tokenSale.connect(owner).toggleSaleActive();
+  //wait for 1 block
+  await ethers.provider.send("evm_mine", []);
+  await tokenSale
+    .connect(user5)
+    .buyTokens(2, { value: ethers.parseUnits("10", "ether") });
+  expect(await tokenSale.getBalance()).to.equal(
+    ethers.parseUnits("10", "ether")
+  );
+  console.log("balance:", await ethers.provider.getBalance(tokenSaleAddress));
+  const ownerBalance = await ethers.provider.getBalance(owner.address);
+  console.log("Owner balance:", ownerBalance);
+  const gasLimit = 1000000;
+  await tokenSale.connect(owner).withdrawEth({ gasLimit });
+  console.log("balance:", await ethers.provider.getBalance(tokenSaleAddress));
+  const newOwnerBalance = await ethers.provider.getBalance(owner.address);
+  console.log("New Owner balance:", newOwnerBalance);
+  expect(await ethers.provider.getBalance(tokenSaleAddress)).to.equal(0);
+
+  expect(newOwnerBalance).to.be.greaterThan(ownerBalance);
 });

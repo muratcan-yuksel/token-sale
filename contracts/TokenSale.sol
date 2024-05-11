@@ -99,12 +99,8 @@ contract TokenSale is Ownable, ReentrancyGuard {
         //whitelistedAddresses[_address] = false;
     }
 
-    function pause() external onlyOwner {
-        paused = true;
-    }
-
-    function unpause() external onlyOwner {
-        paused = false;
+    function togglePause() external onlyOwner {
+        paused = !paused;
     }
 
     function setTokenPrice(uint256 _tokenPrice) external onlyOwner {
@@ -145,6 +141,10 @@ contract TokenSale is Ownable, ReentrancyGuard {
             msg.value >= _amount * tokenPrice,
             "You have to pay the correct amount"
         );
+
+        awtoken.transfer(msg.sender, _amount);
+        tokenSold += _amount;
+        //emit TokenSold(msg.sender, _amount, _amount * tokenPrice);
     }
 
     function withdrawEth() external onlyOwner {
