@@ -73,7 +73,16 @@ it("non whitelisted user cannot buy tokens", async function () {
 
 it("owner can whitelist users", async function () {
   await addToWhitelist(user2.address);
+  expect(await tokenSale.isWhitelisted(user2.address)).to.equal(true);
 });
+
+it("owner can whitelist multiple users", async function () {
+  await addToWhitelist(user3.address);
+  await addToWhitelist(user4.address);
+  expect(await tokenSale.isWhitelisted(user3.address)).to.equal(true);
+  expect(await tokenSale.isWhitelisted(user4.address)).to.equal(true);
+});
+
 it("non owner cannot whitelist users", async function () {
   await expect(tokenSale.connect(user1).addToWhitelist(user3.address)).to.be
     .reverted;
@@ -90,6 +99,62 @@ it("whitelisted users can buy tokens", async function () {
   expect(await tokenSale.getBalance()).to.equal(
     ethers.parseUnits("5", "ether")
   );
+});
+
+it("multiple whitelisted users can buy tokens", async function () {
+  await addToWhitelist(user3.address);
+  await addToWhitelist(user4.address);
+  await tokenSale
+    .connect(user3)
+    .buyWhitesaleTokens(1, { value: ethers.parseUnits("5", "ether") });
+  await tokenSale
+    .connect(user4)
+    .buyWhitesaleTokens(1, { value: ethers.parseUnits("5", "ether") });
+
+  expect(await token.balanceOf(user3.address)).to.equal(1);
+  expect(await token.balanceOf(user4.address)).to.equal(1);
+  expect(await tokenSale.getTokenSold()).to.equal(2);
+  expect(await tokenSale.getBalance()).to.equal(
+    ethers.parseUnits("10", "ether")
+  );
+});
+
+it("a whitelisted user can make multiple transactions until they reach the max sale limit", async function () {
+  await addToWhitelist(user2.address);
+  await tokenSale
+    .connect(user2)
+    .buyWhitesaleTokens(1, { value: ethers.parseUnits("5", "ether") });
+
+  expect(await token.balanceOf(user2.address)).to.equal(1);
+  expect(await tokenSale.getTokenSold()).to.equal(1);
+  expect(await tokenSale.getBalance()).to.equal(
+    ethers.parseUnits("5", "ether")
+  );
+  //wait for one block
+  await ethers.provider.send("evm_mine", []);
+  //buy 2 more tokens
+  await tokenSale
+    .connect(user2)
+    .buyWhitesaleTokens(2, { value: ethers.parseUnits("10", "ether") });
+  expect(await token.balanceOf(user2.address)).to.equal(3);
+  expect(await tokenSale.getTokenSold()).to.equal(3);
+  expect(await tokenSale.getBalance()).to.equal(
+    ethers.parseUnits("15", "ether")
+  );
+});
+
+it("owner pauses whitelist sale", async function () {
+  await addToWhitelist(user2.address);
+
+  await tokenSale.connect(owner).toggleWhitelistSaleActive();
+  expect(await tokenSale.isWhitelistSaleActive()).to.equal(false);
+  //this should fail and revert
+  //! It is very important that await comes before the expect here
+  await expect(
+    tokenSale
+      .connect(user2)
+      .buyWhitesaleTokens(1, { value: ethers.parseUnits("5", "ether") })
+  ).to.revertedWith("WhiteSale is not active");
 });
 
 it("owner ends whitesale and everyone can buy tokens", async function () {
