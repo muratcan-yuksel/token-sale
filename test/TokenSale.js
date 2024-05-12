@@ -143,7 +143,7 @@ it("a whitelisted user can make multiple transactions until they reach the max s
   );
 });
 
-it("owner pauses whitelist sale", async function () {
+it("owner pauses whitelist sale and whitelisted user cannot buy token", async function () {
   await addToWhitelist(user2.address);
 
   await tokenSale.connect(owner).toggleWhitelistSaleActive();
@@ -155,6 +155,27 @@ it("owner pauses whitelist sale", async function () {
       .connect(user2)
       .buyWhitesaleTokens(1, { value: ethers.parseUnits("5", "ether") })
   ).to.revertedWith("WhiteSale is not active");
+});
+
+it("whitelisted user cannot buy more than max tokens", async function () {
+  await addToWhitelist(user5.address);
+  await expect(
+    tokenSale
+      .connect(user5)
+      .buyWhitesaleTokens(5, { value: ethers.parseUnits("25", "ether") })
+  ).to.be.revertedWith("Amount must be between 1 and 3");
+});
+
+it("whitelisted user buys 1 token first, then tries to exceed the mount and fails", async function () {
+  await addToWhitelist(user5.address);
+  await tokenSale
+    .connect(user5)
+    .buyWhitesaleTokens(1, { value: ethers.parseUnits("5", "ether") });
+  await expect(
+    tokenSale
+      .connect(user5)
+      .buyWhitesaleTokens(3, { value: ethers.parseUnits("15", "ether") })
+  ).to.be.revertedWith("You cannot buy more than the specified max tokens");
 });
 
 it("owner ends whitesale and everyone can buy tokens", async function () {

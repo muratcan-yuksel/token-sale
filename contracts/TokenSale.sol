@@ -123,8 +123,17 @@ contract TokenSale is Ownable, ReentrancyGuard {
             msg.value >= _amount * tokenPrice,
             "You have to pay the correct amount"
         );
+        require(
+            address(this).balance >= _amount * tokenPrice,
+            "Not enough ETH"
+        );
+        require(
+            balances[msg.sender] + _amount <= maxSale,
+            "You cannot buy more than the specified max tokens"
+        );
 
         awtoken.transfer(msg.sender, _amount);
+        balances[msg.sender] += _amount;
         tokenSold += _amount;
         //emit TokenSold(msg.sender, _amount, _amount * tokenPrice);
     }
@@ -141,8 +150,18 @@ contract TokenSale is Ownable, ReentrancyGuard {
             msg.value >= _amount * tokenPrice,
             "You have to pay the correct amount"
         );
+        require(
+            address(this).balance >= _amount * tokenPrice,
+            "Not enough ETH"
+        );
+        require(
+            balances[msg.sender] + _amount <= maxSale,
+            "You cannot buy more than the specified max tokens"
+        );
 
         awtoken.transfer(msg.sender, _amount);
+        balances[msg.sender] += _amount;
+
         tokenSold += _amount;
         //emit TokenSold(msg.sender, _amount, _amount * tokenPrice);
     }
