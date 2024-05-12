@@ -196,6 +196,47 @@ it("owner ends whitesale and everyone can buy tokens", async function () {
   );
 });
 
+it("a previously whitelisted user can buy 2 tokens in whitesale, and then buy the remaining 1 token in standard sale", async function () {
+  await addToWhitelist(user5.address);
+  await tokenSale
+    .connect(user5)
+    .buyWhitesaleTokens(2, { value: ethers.parseUnits("10", "ether") });
+
+  await tokenSale.connect(owner).toggleWhitelistSaleActive();
+  await tokenSale.connect(owner).toggleSaleActive();
+
+  //wait for 1 block
+  await ethers.provider.send("evm_mine", []);
+
+  await tokenSale
+    .connect(user5)
+    .buyTokens(1, { value: ethers.parseUnits("5", "ether") });
+  expect(await token.balanceOf(user5.address)).to.equal(3);
+  expect(await tokenSale.getTokenSold()).to.equal(3);
+  expect(await tokenSale.getBalance()).to.equal(
+    ethers.parseUnits("15", "ether")
+  );
+});
+
+it("the same user cannot exceed the max amount by trying to buy 2 tokens in whitesale and 2 in standard sale", async function () {
+  await addToWhitelist(user5.address);
+  await tokenSale
+    .connect(user5)
+    .buyWhitesaleTokens(2, { value: ethers.parseUnits("10", "ether") });
+
+  await tokenSale.connect(owner).toggleWhitelistSaleActive();
+  await tokenSale.connect(owner).toggleSaleActive();
+
+  //wait for 1 block
+  await ethers.provider.send("evm_mine", []);
+
+  await expect(
+    tokenSale
+      .connect(user5)
+      .buyTokens(2, { value: ethers.parseUnits("10", "ether") })
+  ).to.be.revertedWith("You cannot buy more than the specified max tokens");
+});
+
 it("owner can withdraw ETH", async function () {
   await tokenSale.connect(owner).toggleWhitelistSaleActive();
   await tokenSale.connect(owner).toggleSaleActive();
@@ -218,4 +259,18 @@ it("owner can withdraw ETH", async function () {
   expect(await ethers.provider.getBalance(tokenSaleAddress)).to.equal(0);
 
   expect(newOwnerBalance).to.be.greaterThan(ownerBalance);
+});
+
+it("non-owner cannot withdraw ETH", async function () {
+  await tokenSale.connect(owner).toggleWhitelistSaleActive();
+  await tokenSale.connect(owner).toggleSaleActive();
+  //wait for 1 block
+  await ethers.provider.send("evm_mine", []);
+  await tokenSale
+    .connect(user5)
+    .buyTokens(2, { value: ethers.parseUnits("10", "ether") });
+  expect(await tokenSale.getBalance()).to.equal(
+    ethers.parseUnits("10", "ether")
+  );
+  await expect(tokenSale.connect(user5).withdrawEth()).to.be.reverted;
 });
