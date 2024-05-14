@@ -107,7 +107,7 @@ contract TokenSale is Ownable, ReentrancyGuard {
         tokenPrice = _tokenPrice;
     }
 
-    function buyWhitesaleTokens(uint256 _amount) external payable {
+    function buyWhitesaleTokens(uint256 _amount) external payable nonReentrant {
         require(whitelistSaleActive, "WhiteSale is not active");
         require(paused == false, "Contract is paused");
         require(
@@ -138,7 +138,7 @@ contract TokenSale is Ownable, ReentrancyGuard {
         //emit TokenSold(msg.sender, _amount, _amount * tokenPrice);
     }
 
-    function buyTokens(uint256 _amount) external payable {
+    function buyTokens(uint256 _amount) external payable nonReentrant {
         require(saleActive, "Standard sale is not active");
         require(paused == false, "Contract is paused");
         require(whitelistSaleActive == false, "WhiteSale should not be active");
